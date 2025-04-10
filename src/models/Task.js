@@ -7,7 +7,7 @@ const TaskSchema = new mongoose.Schema(
     assigned_to: { type: String, required: true },
     due_date: { type: Date, required: true },
     project_name: { type: String, required: true },
-    status: { type: String, required: true, default: "NOT_STARTED" },
+    status: { type: String, required: true, default: "Not Started" },
   },
   { timestamps: true }
 );
