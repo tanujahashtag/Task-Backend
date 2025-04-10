@@ -3,8 +3,14 @@ const Task = require("../models/Task");
 // Create and Save a Task
 exports.saveTask = async (req, res, next) => {
   try {
-    const { task_name, description, assigned_to, due_date, project_name ,status} =
-      req.body;
+    const {
+      task_name,
+      description,
+      assigned_to,
+      due_date,
+      project_name,
+      status,
+    } = req.body;
 
     const newTask = new Task({
       task_name,
@@ -58,6 +64,29 @@ exports.deleteTask = async (req, res, next) => {
       return res.status(404).json({ message: "Task not found" });
 
     res.status(200).json({ message: "Task deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update Task
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTask)
+      return res.status(404).json({ message: "Task not found" });
+
+    res
+      .status(200)
+      .json({ message: "Task status updated successfully", task: updatedTask });
   } catch (error) {
     next(error);
   }
