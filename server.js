@@ -2,15 +2,24 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const authRoutes = require("./src/routes/auth");
 
+const userRoutes = require("./src/routes/userRoutes");
+const taskRoutes = require("./src/routes/taskRoutes");
+const projectRoutes = require("./src/routes/projectRoutes");
+const path = require("path");
 dotenv.config();
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
-app.use("/api", authRoutes);
+app.use("/auth", userRoutes);
+app.use("/task", taskRoutes);
+app.use("/projects", projectRoutes);
+app.use(
+  "/profile-images",
+  express.static(path.join(__dirname, "src/uploads/profileImages"))
+);
 
 const PORT = process.env.PORT || 5000;
 mongoose
