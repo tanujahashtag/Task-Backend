@@ -3,10 +3,10 @@ const router = express.Router();
 const ProjectController = require("../controllers/ProjectController");
 const authenticateToken = require("../middlewares/authMiddleware");
 
-router.post("/projects", authenticateToken, ProjectController.addProject);
-router.put("/projects", authenticateToken, ProjectController.updateProject);
-router.get("/projects", authenticateToken, ProjectController.allProject);
-router.get("/projects/:id", authenticateToken, ProjectController.getProject);
-router.delete("/projects", authenticateToken, ProjectController.deleteProject);
+router.post("/projects",  ProjectController.addProject);
+router.put("/projects",  ProjectController.updateProject);
+router.get("/projects",  ProjectController.allProject);
+router.get("/projects/:id",  ProjectController.getProject);
+router.delete("/projects",  ProjectController.deleteProject);
 
 module.exports = router;

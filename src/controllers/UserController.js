@@ -24,6 +24,7 @@ exports.addUser = async (req, res) => {
       name,
       email,
       password,
+      designation,
       role: role || "User",
       project: project || null,
       profileImage: defaultProfileImage,
@@ -38,6 +39,7 @@ exports.addUser = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         project: newUser.project,
+        project: newUser.designation,
         profileImage: `/profile-images/${newUser.profileImage}`,
       },
     });
