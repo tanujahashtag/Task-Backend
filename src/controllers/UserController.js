@@ -157,3 +157,15 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.getUserList = async (req, res) => {
+  try {
+    const users = await User.find({ role: { $ne: "Admin" } }).select(
+      "_id name"
+    );
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

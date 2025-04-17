@@ -86,3 +86,13 @@ exports.deleteProject = async (req, res) => {
     res.status(500).json({ message: "Error deleting project", error });
   }
 };
+
+exports.getProjectList = async (req, res) => {
+  try {
+    const projects = await Project.find().select("_id projectName");
+    res.status(200).json({ projects });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -7,6 +7,7 @@ const authenticateToken = require("../middlewares/authMiddleware");
 router.post("/register", UserController.addUser);
 router.post("/login", UserController.login);
 router.get("/users",  UserController.getAllUsers);
+router.get("/users-list",  UserController.getUserList);
 router.put("/users/:id",  UserController.updateUser);
 
 module.exports = router;
