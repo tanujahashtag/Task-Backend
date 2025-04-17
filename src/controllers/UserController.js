@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 // Register user
 exports.addUser = async (req, res) => {
   try {
-    const { name, email, password, role, project } = req.body;
+    const { name, email, password, role, project, designation } = req.body;
     // Validate required fields
     if (!name || !email || !password) {
       return res
@@ -24,10 +24,9 @@ exports.addUser = async (req, res) => {
       name,
       email,
       password,
-      designation,
       role: role || "User",
       project: project || null,
-      profileImage: defaultProfileImage,
+      designation: project || null,
     });
 
     await newUser.save();
@@ -39,8 +38,7 @@ exports.addUser = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         project: newUser.project,
-        project: newUser.designation,
-        profileImage: `/profile-images/${newUser.profileImage}`,
+        designation: newUser.designation,
       },
     });
   } catch (error) {
