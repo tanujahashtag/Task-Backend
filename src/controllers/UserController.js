@@ -26,7 +26,7 @@ exports.addUser = async (req, res) => {
       password,
       role: role || "User",
       project: project || null,
-      designation: project || null,
+      designation: designation || null,
     });
 
     await newUser.save();
