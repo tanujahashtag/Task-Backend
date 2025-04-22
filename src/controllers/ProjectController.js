@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const Task = require("../models/Task");
 
 // Add new project
 exports.addProject = async (req, res) => {
@@ -94,5 +95,43 @@ exports.getProjectList = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getProjectTaskCount = async (req, res) => {
+  try {
+    const results = await Task.aggregate([
+      // Join with projects to get project name
+      {
+        $lookup: {
+          from: "projects",
+          localField: "project_id",
+          foreignField: "_id",
+          as: "project",
+        },
+      },
+      { $unwind: "$project" },
+
+      // Group by project name and count tasks
+      {
+        $group: {
+          _id: "$project.name",
+          number_of_task: { $sum: 1 },
+        },
+      },
+
+      // Format the output fields
+      {
+        $project: {
+          _id: 0,
+          project_name: "$_id",
+          number_of_task: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json({ project: results });
+  } catch (error) {
+    next(error);
   }
 };

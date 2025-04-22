@@ -9,6 +9,7 @@ exports.saveTask = async (req, res, next) => {
       assigned_to,
       due_date,
       project_name,
+      project_id,
       status,
     } = req.body;
 
@@ -18,6 +19,7 @@ exports.saveTask = async (req, res, next) => {
       assigned_to,
       due_date,
       project_name,
+      project_id,
       status,
     });
     await newTask.save();
@@ -87,6 +89,28 @@ exports.updateStatus = async (req, res, next) => {
     res
       .status(200)
       .json({ message: "Task status updated successfully", task: updatedTask });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.taskCount = async (req, res, next) => {
+  try {
+    const counts = await Task.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = {};
+    counts.forEach((item) => {
+      result[item._id] = item.count;
+    });
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
