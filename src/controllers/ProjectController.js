@@ -113,14 +113,13 @@ exports.getProjectTaskCount = async (req, res) => {
       { $unwind: "$project" },
 
       // Group by project name and count tasks
+
       {
         $group: {
-          _id: "$project.name",
+          _id: "$project.projectName",
           number_of_task: { $sum: 1 },
         },
       },
-
-      // Format the output fields
       {
         $project: {
           _id: 0,
@@ -130,8 +129,8 @@ exports.getProjectTaskCount = async (req, res) => {
       },
     ]);
 
-    res.status(200).json({ project: results });
+    res.status(200).json({ projects: results });
   } catch (error) {
-    next(error);
+    next(error); 
   }
 };
