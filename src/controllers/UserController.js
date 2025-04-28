@@ -160,9 +160,19 @@ exports.updateUser = async (req, res) => {
 
 exports.getUserList = async (req, res) => {
   try {
-    const users = await User.find({ role: { $ne: "Admin" } }).select(
-      "_id name"
-    );
+    const { project_id } = req.body;
+
+    if (!project_id) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
+
+    // Step 2: Find all users who are associated with the given project
+    const users = await User.find({
+      role: { $ne: "Admin" }, // Exclude Admins
+      "project.project_id": project_id, // Find users who are assigned to the given project_id
+    }).select("_id name role"); // Only return _id, name, and role fields
+
+    // Step 3: Return the list of users
     res.status(200).json({ users });
   } catch (error) {
     console.error(error);

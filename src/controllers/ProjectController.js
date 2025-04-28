@@ -53,8 +53,7 @@ exports.updateProject = async (req, res) => {
 // Get all projects
 exports.allProject = async (req, res) => {
   try {
-    const { user_id } = req.body; // Get user_id from request body
-
+    const { id: user_id } = req.params;
     // Step 1: Find the user's role based on user_id
     const user = await User.findById(user_id);
     if (!user) {

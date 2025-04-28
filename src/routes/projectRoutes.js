@@ -5,7 +5,7 @@ const authenticateToken = require("../middlewares/authMiddleware");
 
 router.post("/projects", ProjectController.addProject);
 router.put("/projects", ProjectController.updateProject);
-router.post("/projects-task-list", ProjectController.allProject);
+router.get("/projects-task-list/:id", ProjectController.allProject);
 router.get("/projects/:id", ProjectController.getProject);
 router.delete("/projects", ProjectController.deleteProject);
 router.get("/project-list", authenticateToken, ProjectController.getProjectList);
