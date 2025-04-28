@@ -63,9 +63,9 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    `~`;
 
     // Compare the hashed password with the entered password
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -77,6 +77,7 @@ exports.login = async (req, res) => {
       "your_secret_key",
       { expiresIn: "1h" }
     );
+    //const profileImageUrl = `http://localhost:5000/profile-images/${user.profileImage}`;
 
     res.status(200).json({
       message: "Login successful",
@@ -87,6 +88,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         project: user.project,
+        //profileImage: profileImageUrl,
       },
     });
   } catch (error) {

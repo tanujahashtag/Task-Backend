@@ -52,8 +52,36 @@ exports.updateProject = async (req, res) => {
 // Get all projects
 exports.allProject = async (req, res) => {
   try {
-    const projects = await Project.find();
-    res.status(200).json(projects);
+    projects.map(async (project) => {
+      let tasks;
+
+      if (userRole === "admin" || userRole === "project manager") {
+        // Admins and Project Managers get all tasks of the project
+        tasks = await Task.find({ project_id: project._id });
+      } else {
+        // Other users only get their assigned tasks
+        tasks = await Task.find({
+          project_id: project._id,
+          assigned_to: userId, // assuming userId is available
+        });
+      }
+
+      return {
+        ...project.toObject(),
+        tasks: tasks.map((task) => ({
+          task_name: task.task_name,
+          description: task.description,
+          assigned_to: task.assigned_to,
+          due_date: task.due_date,
+          status: task.status,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+          _id: task._id,
+        })),
+      };
+    });
+
+    res.status(200).json(projectsWithTasks);
   } catch (error) {
     res.status(500).json({ message: "Error fetching projects", error });
   }
@@ -131,6 +159,6 @@ exports.getProjectTaskCount = async (req, res) => {
 
     res.status(200).json({ projects: results });
   } catch (error) {
-    next(error); 
+    next(error);
   }
 };

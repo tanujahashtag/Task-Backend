@@ -10,6 +10,7 @@ exports.saveTask = async (req, res, next) => {
       due_date,
       project_name,
       project_id,
+      user_id,
       status,
     } = req.body;
 
@@ -20,6 +21,7 @@ exports.saveTask = async (req, res, next) => {
       due_date,
       project_name,
       project_id,
+      user_id,
       status,
     });
     await newTask.save();
