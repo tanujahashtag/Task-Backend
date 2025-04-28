@@ -218,3 +218,20 @@ exports.getProjectTaskCount = async (req, res) => {
     next(error);
   }
 };
+
+exports.getProjecName = async (req, res) => {
+  try {
+    const projects = await Project.find().select("projectName"); // Select only the project name
+
+    // Step 2: Check if no projects found
+    if (!projects || projects.length === 0) {
+      return res.status(404).json({ message: "No projects found" });
+    }
+
+    // Step 3: Return the list of project names
+    res.status(200).json({ projects });
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

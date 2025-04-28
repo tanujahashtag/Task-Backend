@@ -9,6 +9,7 @@ router.get("/projects-task-list/:id", ProjectController.allProject);
 router.get("/projects/:id", ProjectController.getProject);
 router.delete("/projects", ProjectController.deleteProject);
 router.get("/project-list", authenticateToken, ProjectController.getProjectList);
+router.get("/project-name", ProjectController.getProjecName);
 router.get("/project-task-count",  ProjectController.getProjectTaskCount);
 
 module.exports = router;
