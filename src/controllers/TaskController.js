@@ -37,7 +37,22 @@ exports.saveTask = async (req, res, next) => {
 // Get All Tasks
 exports.allTask = async (req, res, next) => {
   try {
-    const tasks = await Task.find();
+    const user = req.user;
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const role = user.role.toLowerCase(); // Get the role of the user
+
+    let tasks;
+
+    // Fetch all projects if the user is an Admin or Project Manager
+    if (role === "admin" || role === "project manager") {
+      const tasks = await Task.find();
+    }
+    // For other roles, find only the projects the user is assigned to
+    tasks = await Task.find({ user_id: user.userId });
+
     res.status(200).json(tasks);
   } catch (error) {
     next(error);
