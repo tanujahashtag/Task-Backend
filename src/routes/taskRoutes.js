@@ -4,11 +4,11 @@ const TaskController = require("../controllers/TaskController");
 const authenticateToken = require("../middlewares/authMiddleware");
 
 // Route setup
-router.get("/tasks", authenticateToken, TaskController.allTask);
-router.post("/tasks", TaskController.saveTask);
-router.get("/tasks/:id", TaskController.getTask);
-router.delete("/tasks/:id", TaskController.deleteTask);
-router.put("/tasks/:id", TaskController.updateStatus);
+router.get("/get-all", authenticateToken, TaskController.allTask);
+router.post("/add", TaskController.saveTask);
+router.get("/get/:id", TaskController.getTask);
+router.delete("/delete/:id", TaskController.deleteTask);
+router.put("/update/:id", TaskController.updateStatus);
 router.get("/tasks-count", TaskController.taskCount);
 
 module.exports = router;

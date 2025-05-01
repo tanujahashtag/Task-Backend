@@ -9,6 +9,7 @@ exports.addProject = async (req, res) => {
       projectName,
       shortDescription,
       additionalInfo,
+      teamMember,
       startDate,
       endDate,
     } = req.body;
@@ -16,15 +17,40 @@ exports.addProject = async (req, res) => {
       projectName,
       shortDescription,
       additionalInfo,
+      teamMember,
       startDate,
       endDate,
     });
 
     await newProject.save();
+
+    await Promise.all(
+      teamMember.map(async (member) => {
+        if (!member.userId) return;
+
+        try {
+          await User.findByIdAndUpdate(
+            member.userId,
+            {
+              $addToSet: {
+                projects: {
+                  project_id: newProject._id,
+                },
+              },
+            },
+            { new: true }
+          );
+        } catch (err) {
+          console.error(`Error updating user ${member.userId}:`, err.message);
+        }
+      })
+    );
+
     res
       .status(201)
       .json({ message: "Project created successfully", project: newProject });
   } catch (error) {
+    console.error("Error in addProject:", error);
     res.status(500).json({ message: "Error creating project", error });
   }
 };
@@ -137,12 +163,27 @@ exports.getProject = async (req, res) => {
 exports.deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Step 1: Delete the project
     const deletedProject = await Project.findByIdAndDelete(id);
 
     if (!deletedProject)
       return res.status(404).json({ message: "Project not found" });
 
-    res.status(200).json({ message: "Project deleted" });
+    // Step 2: Remove project reference from all users
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          projects: { project_id: id },
+        },
+      }
+    );
+
+    // Step 3: Delete all tasks related to the project
+    await Task.deleteMany({ project_id: id });
+
+    res.status(200).json({ message: "Project and related data deleted" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting project", error });
   }

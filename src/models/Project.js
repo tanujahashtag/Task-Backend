@@ -5,6 +5,7 @@ const projectSchema = new mongoose.Schema(
     projectName: { type: String, required: true },
     shortDescription: { type: String },
     additionalInfo: { type: String },
+    teamMember: { type: Object },
     startDate: { type: Date },
     endDate: { type: Date },
   },
