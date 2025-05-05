@@ -11,7 +11,7 @@ const TaskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
     },
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // 👈 important!
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // 👈 important!
 
     status: { type: String, required: true, default: "Not Started" },
   },

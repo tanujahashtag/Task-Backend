@@ -79,7 +79,6 @@ exports.teamLeadList = async (req, res) => {
   try {
     // Get all users who are team leads
     const leads = await User.find({ role: "Team Lead" }); // Adjust role field as per your data
-
     // For each lead, check if they're part of any team
     const leadWithTeams = await Promise.all(
       leads.map(async (lead) => {
@@ -107,7 +106,7 @@ exports.teamLeadList = async (req, res) => {
 };
 
 //List of Team Members
-exports.teamLeadList = async (req, res) => {
+exports.teamUserList = async (req, res) => {
   try {
     const users = await User.find({ role: "Employee" });
     const usersWithTeams = await Promise.all(
