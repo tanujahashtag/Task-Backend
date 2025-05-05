@@ -90,6 +90,7 @@ exports.teamLeadList = async (req, res) => {
         });
 
         return {
+          _id: lead._id,
           name: lead.name,
           email: lead.email,
           teamName: team ? team.teamName : null,
