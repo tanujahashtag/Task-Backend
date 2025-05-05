@@ -106,9 +106,31 @@ exports.teamLeadList = async (req, res) => {
   }
 };
 
-
 //List of Team Members
 exports.teamLeadList = async (req, res) => {
+  try {
+    const users = await User.find({ role: "User" });
+    const usersWithTeams = await Promise.all(
+      users.map(async (user) => {
+        const userIdStr = user._id.toString();
 
-  
-}
+        const team = await Team.findOne({
+          $or: [{ teamLeadId: userIdStr }, { "teamMember.userId": userIdStr }],
+        });
+
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          teamName: team ? team.teamName : null,
+          teamId: team ? team._id : null,
+        };
+      })
+    );
+
+    res.status(200).json({ success: true, data: usersWithTeams });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
