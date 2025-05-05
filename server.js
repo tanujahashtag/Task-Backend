@@ -8,6 +8,7 @@ const userRoutes = require("./src/routes/userRoutes");
 const taskRoutes = require("./src/routes/taskRoutes");
 const projectRoutes = require("./src/routes/projectRoutes");
 const roleRoutes = require("./src/routes/roleRoutes");
+const teamRoutes = require("./src/routes/teamRoutes");
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,7 @@ app.use("/auth", userRoutes);
 app.use("/task", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/roles", roleRoutes);
+app.use("/teams", teamRoutes);
 app.use(
   "/profile-images",
   express.static(path.join(__dirname, "src/uploads/profileImages"))

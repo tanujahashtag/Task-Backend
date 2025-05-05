@@ -1,7 +1,8 @@
-const User = require("../models/Team");
+const Team = require("../models/Team");
+const User = require("../models/User");
 
 // Register user
-exports.addTeam = async (req, res) => {
+exports.createTeam = async (req, res) => {
   try {
     const { teamName, teamLead, teamLeadId, teamMember } = req.body;
 
@@ -72,3 +73,42 @@ exports.deleteTeam = async (req, res) => {
     res.status(500).json({ message: "Error deleting team", error });
   }
 };
+
+//List of Team Leads
+exports.teamLeadList = async (req, res) => {
+  try {
+    // Get all users who are team leads
+    const leads = await User.find({ role: "Team Lead" }); // Adjust role field as per your data
+
+    // For each lead, check if they're part of any team
+    const leadWithTeams = await Promise.all(
+      leads.map(async (lead) => {
+        const team = await Team.findOne({
+          $or: [
+            { teamLeadId: lead._id.toString() },
+            { "teamMember.userId": lead._id.toString() },
+          ],
+        });
+
+        return {
+          name: lead.name,
+          email: lead.email,
+          teamName: team ? team.teamName : null,
+          teamLeadId: team ? team.teamLeadId : null,
+        };
+      })
+    );
+
+    res.status(200).json({ success: true, data: leadWithTeams });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+//List of Team Members
+exports.teamLeadList = async (req, res) => {
+
+  
+}
