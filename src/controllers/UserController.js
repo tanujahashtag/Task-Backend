@@ -24,7 +24,7 @@ exports.addUser = async (req, res) => {
       name,
       email,
       password,
-      role: role || "User",
+      role: role || "Employee",
       project: project || null,
       designation: designation || null,
     });
@@ -160,7 +160,7 @@ exports.updateUser = async (req, res) => {
 
 exports.getUserList = async (req, res) => {
   try {
-    const { id:project_id } = req.params;
+    const { id: project_id } = req.params;
 
     if (!project_id) {
       return res.status(400).json({ message: "Project ID is required" });

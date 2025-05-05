@@ -3,10 +3,10 @@ const bcrypt = require("bcryptjs");
 const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true , match: /.+\@.+\..+/ },
+    email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
     password: { type: String, required: true },
     designation: { type: String },
-    role: { type: String, default: "User" },
+    role: { type: String, default: "Employee" },
     project: { type: Array },
     profileImage: { type: String, default: "default-avatar.png" },
   },
@@ -22,4 +22,4 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = mongoose.model("Employee", UserSchema);

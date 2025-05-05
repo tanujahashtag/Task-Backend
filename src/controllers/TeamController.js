@@ -109,7 +109,7 @@ exports.teamLeadList = async (req, res) => {
 //List of Team Members
 exports.teamLeadList = async (req, res) => {
   try {
-    const users = await User.find({ role: "User" });
+    const users = await User.find({ role: "Employee" });
     const usersWithTeams = await Promise.all(
       users.map(async (user) => {
         const userIdStr = user._id.toString();
