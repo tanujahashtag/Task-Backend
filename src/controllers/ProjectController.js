@@ -9,23 +9,32 @@ exports.addProject = async (req, res) => {
       projectName,
       shortDescription,
       additionalInfo,
-      teamMember,
+      projectManager,
+      projectManagerId,
+      teams,
       startDate,
       endDate,
     } = req.body;
+
+    // Create the new project
     const newProject = new Project({
       projectName,
       shortDescription,
       additionalInfo,
-      teamMember,
+      projectManager,
+      projectManagerId,
+      teams,
       startDate,
       endDate,
     });
 
     await newProject.save();
 
+    // Flatten all team members into a single array to update each user
+    const allMembers = teams.flatMap((team) => team.members || []);
+
     await Promise.all(
-      teamMember.map(async (member) => {
+      allMembers.map(async (member) => {
         if (!member.userId) return;
 
         try {
@@ -46,9 +55,10 @@ exports.addProject = async (req, res) => {
       })
     );
 
-    res
-      .status(201)
-      .json({ message: "Project created successfully", project: newProject });
+    res.status(201).json({
+      message: "Project created successfully",
+      project: newProject,
+    });
   } catch (error) {
     console.error("Error in addProject:", error);
     res.status(500).json({ message: "Error creating project", error });

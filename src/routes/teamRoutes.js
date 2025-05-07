@@ -11,5 +11,6 @@ router.put("/update/:id", TeamController.updateTeam);
 router.delete("/delete/:id", TeamController.deleteTeam);
 router.get("/team-leads-list", TeamController.teamLeadList);
 router.get("/team-user-list", TeamController.teamUserList);
+router.get("/team-member-list/:id", TeamController.teamMemberList);
 
 module.exports = router;
