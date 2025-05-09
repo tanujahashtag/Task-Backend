@@ -27,6 +27,7 @@ exports.addProject = async (req, res) => {
       startDate,
       endDate,
     });
+    await newProject.save();
 
     // Flatten team members
     const allMembers = teams.flatMap((team) => team.members || []);
