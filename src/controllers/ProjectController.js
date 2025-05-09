@@ -28,16 +28,10 @@ exports.addProject = async (req, res) => {
       endDate,
     });
 
-    await newProject.save();
+    // Flatten team members
+    const allMembers = teams.flatMap((team) => team.members || []);
 
-    // Flatten all team members and update each user with project ID
-    const allMembers = teams.flatMap((team) =>
-      (team.members || []).map((member) => ({
-        ...member,
-        teamName: team.teamName,
-      }))
-    );
-
+    // Update each user with project_id in `project` array
     await Promise.all(
       allMembers.map(async (member) => {
         if (!member.userId) return;
@@ -47,10 +41,8 @@ exports.addProject = async (req, res) => {
             member.userId,
             {
               $addToSet: {
-                projects: {
+                project: {
                   project_id: newProject._id,
-                  role: member.role,
-                  team: member.teamName,
                 },
               },
             },
@@ -63,12 +55,12 @@ exports.addProject = async (req, res) => {
     );
 
     return res.status(201).json({
-      message: 'Project created successfully',
+      message: "Project created successfully",
       project: newProject,
     });
   } catch (error) {
-    console.error('Error creating project:', error.message);
-    return res.status(500).json({ error: 'Failed to create project' });
+    console.error("Error creating project:", error.message);
+    return res.status(500).json({ error: "Failed to create project" });
   }
 };
 
