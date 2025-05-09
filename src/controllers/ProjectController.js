@@ -32,18 +32,71 @@ exports.addProject = async (req, res) => {
     // Flatten team members
     const allMembers = teams.flatMap((team) => team.members || []);
 
+    await Promise.all(
+      allMembers.map(async (member) => {
+        if (!member.userId) return;
+
+        try {
+          const user = await User.findById(member.userId);
+
+          if (!user) {
+            console.warn(`User not found: ${member.userId}`);
+            return;
+          }
+
+          // Initialize project field if missing
+          if (!Array.isArray(user.project)) {
+            user.project = [];
+          }
+
+          // Check for duplicate project_id
+          const alreadyExists = user.project.some(
+            (p) => p.project_id.toString() === newProject._id.toString()
+          );
+
+          if (!alreadyExists) {
+            user.project.push({
+              project_id: newProject._id,
+            });
+
+            await user.save();
+          } else {
+            console.log(`User ${user.name} already linked to this project.`);
+          }
+        } catch (err) {
+          console.error(`Error updating user ${member.userId}:`, err.message);
+        }
+      })
+    );
+
     // Update each user with project_id in `project` array
     await Promise.all(
       allMembers.map(async (member) => {
         if (!member.userId) return;
 
         try {
-          await User.findByIdAndUpdate(
-            member.userId,
+          // Optionally: fetch existing user to get profileImage dynamically
+          const user = await User.findById(member.userId);
+          if (!user) {
+            console.warn(`User not found: ${member.userId}`);
+            return;
+          }
+
+          await User.updateOne(
+            { _id: member.userId },
             {
+              $set: {
+                // if project field is null or missing, initialize as empty array
+                ...(typeof user.project === "undefined" || user.project === null
+                  ? { project: [] }
+                  : {}),
+              },
               $addToSet: {
                 project: {
                   project_id: newProject._id,
+                  profileImage: user.profileImage || "default-avatar.png",
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
                 },
               },
             },

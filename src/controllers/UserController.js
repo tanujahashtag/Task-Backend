@@ -161,7 +161,6 @@ exports.updateUser = async (req, res) => {
 exports.getUserList = async (req, res) => {
   try {
     const { id: project_id } = req.params;
-
     if (!project_id) {
       return res.status(400).json({ message: "Project ID is required" });
     }

@@ -7,8 +7,14 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: true },
     designation: { type: String },
     role: { type: String, default: "Employee" },
-    project: { type: Array },
-    profileImage: { type: String, default: "default-avatar.png" },
+    project: [
+      {
+        project_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Project",
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
