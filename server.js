@@ -18,7 +18,7 @@ app.use(cors());
 
 // Define routes
 app.use("/auth", userRoutes);
-app.use("/task", taskRoutes);
+app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/roles", roleRoutes);
 app.use("/teams", teamRoutes);
