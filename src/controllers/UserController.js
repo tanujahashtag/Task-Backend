@@ -3,6 +3,8 @@ const Project = require("../models/Project");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 // Register user
 exports.addUser = async (req, res) => {
@@ -144,15 +146,34 @@ exports.updateUser = async (req, res) => {
     // Prevent email update regardless of role
     delete updates.email;
 
+    // // Handle profile image replacement
+
+    console.log("data", updates.profileImage, user.profileImage);
+    if (updates.profileImage && updates.profileImage !== user.profileImage) {
+      const oldImagePath = path.join(
+        __dirname, // Current directory where your script is located
+        "../uploads/profileImage", // Go one level up to `project-root` and then to `uploads/profileImage`
+        user.profileImage // The actual image name (filename)
+      );
+
+      if (
+        fs.existsSync(oldImagePath) &&
+        user.profileImage !== "default-avatar.png"
+      ) {
+        fs.unlinkSync(oldImagePath); // Delete old image
+      }
+    }
+
     // Apply updates
     Object.keys(updates).forEach((key) => {
       user[key] = updates[key];
     });
 
-    await user.save();
-    const profileImageUrl = user.profileImage`${req.protocol}://${req.get(
-      "host"
-    )}/uploads/${user.profileImage}`;
+    const profileImageUrl = user.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+      : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
+
+    //await user.save();
 
     res.status(200).json({
       message: "User updated successfully",
@@ -165,8 +186,11 @@ exports.updateUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error(error); // still logs full error in console for debugging
+    res.status(500).json({
+      message: "Server error",
+      error: error.message || error.toString(),
+    });
   }
 };
 
