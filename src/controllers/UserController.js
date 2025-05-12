@@ -228,12 +228,8 @@ exports.userDetail = async (req, res) => {
 
     // Construct full URL for profile image if it exists
     const profileImageUrl = user.profileImage
-      ? `${req.protocol}://${req.get("host")}/uploads/profileImage/${
-          user.profileImage
-        }`
-      : `${req.protocol}://${req.get(
-          "host"
-        )}/uploads/profileImage/default-avatar.png`;
+      ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+      : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
 
     // Return user details
     res.status(200).json({
