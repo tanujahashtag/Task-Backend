@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: true },
     designation: { type: String },
     role: { type: String, default: "Employee" },
+    profileImage: {type: String, default: "default-avatar.png" },
     project: [
       {
         project_id: {

@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 
 // Register user
 exports.addUser = async (req, res) => {
@@ -71,13 +72,20 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    const profileImageUrl = user.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/profileImage/${
+          user.profileImage
+        }`
+      : `${req.protocol}://${req.get(
+          "host"
+        )}/uploads/profileImage/default-avatar.png`;
+
     // Generate a JWT token
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
       "your_secret_key",
       { expiresIn: "1h" }
     );
-    //const profileImageUrl = `http://localhost:5000/profile-images/${user.profileImage}`;
 
     res.status(200).json({
       message: "Login successful",
@@ -88,7 +96,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         project: user.project,
-        //profileImage: profileImageUrl,
+        profileImage: profileImageUrl,
       },
     });
   } catch (error) {
@@ -175,6 +183,72 @@ exports.getUserList = async (req, res) => {
     res.status(200).json({ users });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Multer Configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "src/uploads/profileImage");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+
+// Route handler
+exports.uploadProfile = (req, res) => {
+  upload.single("profileImage")(req, res, (err) => {
+    if (err) {
+      return res
+        .status(400)
+        .json({ message: "File upload failed", error: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file provided" });
+    }
+
+    res.status(200).json({
+      message: "Profile image uploaded successfully",
+      filename: req.file.filename,
+    });
+  });
+};
+
+exports.userDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch the user by ID
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Construct full URL for profile image if it exists
+    const profileImageUrl = user.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/profileImage/${
+          user.profileImage
+        }`
+      : `${req.protocol}://${req.get(
+          "host"
+        )}/uploads/profileImage/default-avatar.png`;
+
+    // Return user details
+    res.status(200).json({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      project: user.project,
+      profileImage: profileImageUrl,
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
