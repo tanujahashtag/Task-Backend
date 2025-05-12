@@ -36,10 +36,45 @@ exports.getAllTeams = async (req, res) => {
 // Get Single Team by ID
 exports.getTeamById = async (req, res) => {
   try {
+    // Fetch the team by ID
     const team = await Team.findById(req.params.id);
     if (!team) return res.status(404).json({ message: "Team not found" });
 
-    res.status(200).json(team);
+    // Fetch user data for each team member and add profileImage to their data
+    const teamMembersWithProfileImage = await Promise.all(
+      team.teamMember.map(async (member) => {
+        // Fetch user data based on userId (assuming teamMembers have userId)
+        const user = await User.findById(member.userId); // Assuming userId is stored in teamMembers array
+
+        if (!user) {
+          // Return an error if user is not found
+          return res.status(404).json({
+            message: `User with ID ${member.userId} not found for team member.`,
+          });
+        }
+        // Build the profile image URL
+        const profileImageUrl = user.profileImage
+          ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+          : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
+
+        return {
+          userId: member.userId,
+          role: member.role,
+          name: user.name, // Assuming user's name is in the User collection
+          _id: member._id,
+          profileImage: profileImageUrl,
+        };
+      })
+    );
+
+    // Return the team data along with the updated team members
+    res.status(200).json({
+      _id: team._id,
+      teamName: team.teamName,
+      teamLead: team.teamLead,
+      teamLeadId: team.teamLeadId,
+      teamMember: teamMembersWithProfileImage,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching team", error });
   }

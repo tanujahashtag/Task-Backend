@@ -207,38 +207,39 @@ exports.updateProject = async (req, res) => {
 exports.allProject = async (req, res) => {
   try {
     const { id: user_id } = req.params;
-    // Step 1: Find the user's role based on user_id
+
+    // Get user (project manager or whoever is logged in)
     const user = await User.findById(user_id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const role = user.role.toLowerCase(); // Get the role of the user
+    const role = user.role.toLowerCase();
 
-    // Step 2: Fetch all projects
-    const projects = await Project.find(); // Get all projects
+    // Build profile image URL
+    const profileImageUrl = user.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+      : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
+
+    // Get all projects
+    const projects = await Project.find();
 
     const projectsWithTasks = await Promise.all(
       projects.map(async (project) => {
-        // Fetch tasks associated with the project
+        // Get all tasks for the project
         const tasks = await Task.find({ project_id: project._id }).populate(
           "user_id"
         );
 
-        // Filter tasks based on user role
+        // Filter based on role
         const filteredTasks = tasks
           .filter((task) => {
-            if (!task.user_id) return false; // Ensure the user exists
-
-            // If the user is admin or project manager, show all tasks
-            if (role === "admin" || role === "project manager") {
-              return true;
-            }
-
-            // For other roles, only show tasks that are assigned to this user
+            if (!task.user_id) return false;
+            if (role === "admin" || role === "project manager") return true;
             return task.user_id._id.toString() === user_id;
           })
           .map((task) => ({
+            _id: task._id,
             task_name: task.task_name,
             description: task.description,
             assigned_to: task.assigned_to,
@@ -246,24 +247,33 @@ exports.allProject = async (req, res) => {
             status: task.status,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
-            _id: task._id,
           }));
 
-        // If the user is assigned any tasks, include the project
+        // Only return projects with tasks
         if (filteredTasks.length > 0) {
           return {
-            ...project.toObject(),
+            _id: project._id,
+            projectName: project.projectName,
+            shortDescription: project.shortDescription,
+            additionalInfo: project.additionalInfo || "",
+            projectManager: user.name,
+            userID: user._id,
+            profileImage: profileImageUrl,
+            projectManagerId: user._id,
+            startDate: project.startDate,
+            endDate: project.endDate,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+            __v: project.__v,
             tasks: filteredTasks,
           };
         }
-        return null; // Return null if the user has no tasks in this project
+
+        return null;
       })
     );
 
-    // Filter out any null projects (where no tasks were found for the user)
-    const filteredProjects = projectsWithTasks.filter(
-      (project) => project !== null
-    );
+    const filteredProjects = projectsWithTasks.filter(Boolean);
 
     return res.status(200).json({ projects: filteredProjects });
   } catch (error) {

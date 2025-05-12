@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Project = require("../models/Project");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
@@ -91,7 +92,6 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        project: user.project,
         profileImage: profileImageUrl,
       },
     });
@@ -226,6 +226,20 @@ exports.userDetail = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    let userProjects = [];
+    if (user.project && user.project.length > 0) {
+      const projectIds = user.project.map((p) => p.project_id);
+      const projects = await Project.find({ _id: { $in: projectIds } }).select(
+        "_id projectName"
+      );
+
+      // match the _id with user.project and return only id + name
+      userProjects = projects.map((proj) => ({
+        project_id: proj._id,
+        projectName: proj.projectName,
+      }));
+    }
+
     // Construct full URL for profile image if it exists
     const profileImageUrl = user.profileImage
       ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
@@ -233,10 +247,11 @@ exports.userDetail = async (req, res) => {
 
     // Return user details
     res.status(200).json({
+      id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      project: user.project,
+      project: userProjects, // Only id + name
       profileImage: profileImageUrl,
     });
   } catch (error) {
