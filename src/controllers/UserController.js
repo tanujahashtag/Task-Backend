@@ -116,45 +116,52 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, role, project, profileImage } = req.body;
+    const updates = req.body;
 
-    // Get the logged-in user's role from the decoded JWT (req.user will contain the decoded token)
-    const loggedInUserRole = req.user.role;
-
-    // Fetch the user to be updated
     const user = await User.findById(id);
+    const loggedInUserRole = user.role;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // If the logged-in user is not an Admin, restrict their access to role, email, and project updates
-    if (loggedInUserRole !== "Admin" && (role || email || project)) {
-      return res.status(403).json({
-        message: "You are not authorized to update role, email, or project.",
-      });
+    // Disallowed fields for non-admin users
+    const restrictedFields = ["email", "role", "project"];
+    if (loggedInUserRole !== "Admin") {
+      for (let field of restrictedFields) {
+        if (field in updates) {
+          return res.status(403).json({
+            message: `You are not authorized to update '${field}'.`,
+          });
+        }
+      }
     }
 
-    // If password is provided, hash it
-    if (password) {
-      user.password = await bcrypt.hash(password, 10); // Hash the new password
+    // Handle password hashing if provided
+    if (updates.password) {
+      updates.password = await bcrypt.hash(updates.password, 10);
     }
 
-    // Update allowed fields
-    if (name) user.name = name;
-    if (email && loggedInUserRole === "Admin") user.email = email; // Only admins can change email
-    if (role && loggedInUserRole === "Admin") user.role = role; // Only admins can change role
-    if (project && loggedInUserRole === "Admin") user.project = project; // Only admins can change project
+    // Prevent email update regardless of role
+    delete updates.email;
+
+    // Apply updates
+    Object.keys(updates).forEach((key) => {
+      user[key] = updates[key];
+    });
 
     await user.save();
+    const profileImageUrl = user.profileImage`${req.protocol}://${req.get(
+      "host"
+    )}/uploads/${user.profileImage}`;
 
     res.status(200).json({
       message: "User updated successfully",
       user: {
         name: user.name,
-        email: user.email,
+        email: user.email, // Email remains unchanged
         role: user.role,
         project: user.project,
-        profileImage: user.profileImage,
+        profileImage: profileImageUrl,
       },
     });
   } catch (error) {

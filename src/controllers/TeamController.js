@@ -40,7 +40,14 @@ exports.getTeamById = async (req, res) => {
     const team = await Team.findById(req.params.id);
     if (!team) return res.status(404).json({ message: "Team not found" });
 
-    // Fetch user data for each team member and add profileImage to their data
+    // Fetch use   
+    const teamLeadUser = await User.findById(team.teamLeadId);
+    const teamLeadProfileImage = teamLeadUser?.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/${
+          teamLeadUser.profileImage
+        }`
+      : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
+
     const teamMembersWithProfileImage = await Promise.all(
       team.teamMember.map(async (member) => {
         // Fetch user data based on userId (assuming teamMembers have userId)
@@ -73,6 +80,7 @@ exports.getTeamById = async (req, res) => {
       teamName: team.teamName,
       teamLead: team.teamLead,
       teamLeadId: team.teamLeadId,
+      teamLeadProfileImage: teamLeadProfileImage,
       teamMember: teamMembersWithProfileImage,
     });
   } catch (error) {
