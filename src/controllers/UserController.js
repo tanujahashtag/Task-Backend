@@ -107,7 +107,23 @@ exports.login = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ role: { $ne: "Admin" } });
-    res.status(200).json({ users });
+
+    const usersWithProfileImage = users.map((user) => {
+      const profileImageUrl = user.profileImage
+        ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+        : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
+
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        project: user.project,
+        profileImage: profileImageUrl,
+      };
+    });
+
+    res.status(200).json({ users: usersWithProfileImage });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -148,21 +164,21 @@ exports.updateUser = async (req, res) => {
 
     // // Handle profile image replacement
 
-    console.log("data", updates.profileImage, user.profileImage);
-    if (updates.profileImage && updates.profileImage !== user.profileImage) {
-      const oldImagePath = path.join(
-        __dirname, // Current directory where your script is located
-        "../uploads/profileImage", // Go one level up to `project-root` and then to `uploads/profileImage`
-        user.profileImage // The actual image name (filename)
-      );
+    // console.log("data", updates.profileImage, user.profileImage);
+    // if (updates.profileImage && updates.profileImage !== user.profileImage) {
+    //   const oldImagePath = path.join(
+    //     __dirname, // Current directory where your script is located
+    //     "../uploads/profileImage", // Go one level up to `project-root` and then to `uploads/profileImage`
+    //     user.profileImage // The actual image name (filename)
+    //   );
 
-      if (
-        fs.existsSync(oldImagePath) &&
-        user.profileImage !== "default-avatar.png"
-      ) {
-        fs.unlinkSync(oldImagePath); // Delete old image
-      }
-    }
+    //   if (
+    //     fs.existsSync(oldImagePath) &&
+    //     user.profileImage !== "default-avatar.png"
+    //   ) {
+    //     fs.unlinkSync(oldImagePath); // Delete old image
+    //   }
+    // }
 
     // Apply updates
     Object.keys(updates).forEach((key) => {
