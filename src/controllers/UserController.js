@@ -162,23 +162,6 @@ exports.updateUser = async (req, res) => {
     // Prevent email update regardless of role
     delete updates.email;
 
-    // // Handle profile image replacement
-
-    // console.log("data", updates.profileImage, user.profileImage);
-    // if (updates.profileImage && updates.profileImage !== user.profileImage) {
-    //   const oldImagePath = path.join(
-    //     __dirname, // Current directory where your script is located
-    //     "../uploads/profileImage", // Go one level up to `project-root` and then to `uploads/profileImage`
-    //     user.profileImage // The actual image name (filename)
-    //   );
-
-    //   if (
-    //     fs.existsSync(oldImagePath) &&
-    //     user.profileImage !== "default-avatar.png"
-    //   ) {
-    //     fs.unlinkSync(oldImagePath); // Delete old image
-    //   }
-    // }
 
     // Apply updates
     Object.keys(updates).forEach((key) => {
@@ -243,23 +226,50 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Route handler
-exports.uploadProfile = (req, res) => {
-  upload.single("profileImage")(req, res, (err) => {
-    if (err) {
-      return res
-        .status(400)
-        .json({ message: "File upload failed", error: err.message });
-    }
+// Upload Profile 
+exports.uploadProfile = async (req, res) => {
+  upload.single("profileImage")(req, res, async (err) => {
+    try {
+      if (err) {
+        return res
+          .status(400)
+          .json({ message: "File upload failed", error: err.message });
+      }
 
-    if (!req.file) {
-      return res.status(400).json({ message: "No file provided" });
-    }
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      console.log('data', req.body);
+      const userId = req.body.id; 
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-    res.status(200).json({
-      message: "Profile image uploaded successfully",
-      filename: req.file.filename,
-    });
+      // Delete old profile image if not default
+      if (user.profileImage && user.profileImage !== "default-avatar.png") {
+        const oldImagePath = path.join(
+          __dirname,
+          "../uploads/profileImage",
+          user.profileImage
+        );
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      // Update user profileImage
+      user.profileImage = req.file.filename;
+      await user.save();
+
+      res.status(200).json({
+        message: "Profile image uploaded and user updated successfully",
+        filename: req.file.filename,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
   });
 };
 
