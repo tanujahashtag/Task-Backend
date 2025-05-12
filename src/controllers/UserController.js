@@ -116,7 +116,7 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, role, project } = req.body;
+    const { name, email, password, role, project, profileImage } = req.body;
 
     // Get the logged-in user's role from the decoded JWT (req.user will contain the decoded token)
     const loggedInUserRole = req.user.role;
@@ -154,6 +154,7 @@ exports.updateUser = async (req, res) => {
         email: user.email,
         role: user.role,
         project: user.project,
+        profileImage: user.profileImage,
       },
     });
   } catch (error) {
