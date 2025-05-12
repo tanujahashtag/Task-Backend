@@ -34,6 +34,48 @@ exports.saveTask = async (req, res, next) => {
   }
 };
 
+// Update an existing Task
+exports.updateTask = async (req, res, next) => {
+  try {
+    const { id } = req.params; // Task ID from URL
+    const {
+      task_name,
+      description,
+      assigned_to,
+      due_date,
+      project_name,
+      project_id,
+      user_id,
+      status,
+    } = req.body;
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      id,
+      {
+        task_name,
+        description,
+        assigned_to,
+        due_date,
+        project_name,
+        project_id,
+        user_id,
+        status,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Task updated successfully", task: updatedTask });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get All Tasks
 exports.allTask = async (req, res, next) => {
   try {
