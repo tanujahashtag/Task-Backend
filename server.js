@@ -22,10 +22,7 @@ app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/roles", roleRoutes);
 app.use("/teams", teamRoutes);
-app.use(
-  "/profile-images",
-  express.static(path.join(__dirname, "src/uploads/profileImages"))
-);
+app.use('/uploads', express.static(path.join(__dirname, 'src/uploads/profileImage')));
 
 const PORT = process.env.PORT || 5000;
 

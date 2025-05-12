@@ -73,12 +73,8 @@ exports.login = async (req, res) => {
     }
 
     const profileImageUrl = user.profileImage
-      ? `${req.protocol}://${req.get("host")}/uploads/profileImage/${
-          user.profileImage
-        }`
-      : `${req.protocol}://${req.get(
-          "host"
-        )}/uploads/profileImage/default-avatar.png`;
+      ? `${req.protocol}://${req.get("host")}/uploads/${user.profileImage}`
+      : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
 
     // Generate a JWT token
     const token = jwt.sign(
