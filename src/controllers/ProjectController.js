@@ -121,21 +121,85 @@ exports.addProject = async (req, res) => {
 // Update existing project
 exports.updateProject = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updates = req.body;
+    const { id } = req.params; // Project ID from URL
+    const {
+      projectName,
+      shortDescription,
+      additionalInfo,
+      projectManager,
+      projectManagerId,
+      teams,
+      startDate,
+      endDate,
+    } = req.body;
 
-    const updatedProject = await Project.findByIdAndUpdate(id, updates, {
-      new: true,
-    });
+    // Update the project details
+    const updatedProject = await Project.findByIdAndUpdate(
+      id,
+      {
+        projectName,
+        shortDescription,
+        additionalInfo,
+        projectManager,
+        projectManagerId,
+        teams,
+        startDate,
+        endDate,
+      },
+      { new: true, runValidators: true }
+    );
 
-    if (!updatedProject)
+    if (!updatedProject) {
       return res.status(404).json({ message: "Project not found" });
+    }
 
-    res
-      .status(200)
-      .json({ message: "Project updated", project: updatedProject });
+    // Flatten all team members from the new teams
+    const allMembers = teams.flatMap((team) => team.members || []);
+
+    // Update each user's project list
+    await Promise.all(
+      allMembers.map(async (member) => {
+        if (!member.userId) return;
+
+        try {
+          const user = await User.findById(member.userId);
+          if (!user) {
+            console.warn(`User not found: ${member.userId}`);
+            return;
+          }
+
+          // Ensure 'project' field exists
+          if (!Array.isArray(user.project)) {
+            user.project = [];
+          }
+
+          // Avoid duplicating the same project reference
+          const alreadyLinked = user.project.some(
+            (p) => p.project_id.toString() === updatedProject._id.toString()
+          );
+
+          if (!alreadyLinked) {
+            user.project.push({
+              project_id: updatedProject._id,
+              profileImage: user.profileImage || "default-avatar.png",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            await user.save();
+          }
+        } catch (err) {
+          console.error(`Error updating user ${member.userId}:`, err.message);
+        }
+      })
+    );
+
+    return res.status(200).json({
+      message: "Project updated successfully",
+      project: updatedProject,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error updating project", error });
+    console.error("Error updating project:", error.message);
+    return res.status(500).json({ error: "Failed to update project" });
   }
 };
 

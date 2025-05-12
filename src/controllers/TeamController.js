@@ -1,7 +1,7 @@
 const Team = require("../models/Team");
 const User = require("../models/User");
 
-// Register user
+// Create Team
 exports.createTeam = async (req, res) => {
   try {
     const { teamName, teamLead, teamLeadId, teamMember } = req.body;
@@ -48,14 +48,27 @@ exports.getTeamById = async (req, res) => {
 // Update Team
 exports.updateTeam = async (req, res) => {
   try {
-    const updatedTeam = await Team.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const { id } = req.params; // Team ID from URL
+    const { teamName, teamLead, teamLeadId, teamMember } = req.body;
 
-    if (!updatedTeam)
+    const updatedTeam = await Team.findByIdAndUpdate(
+      id,
+      {
+        teamName,
+        teamLead,
+        teamLeadId,
+        teamMember,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedTeam) {
       return res.status(404).json({ message: "Team not found" });
+    }
 
-    res.status(200).json({ message: "Team updated", team: updatedTeam });
+    res
+      .status(200)
+      .json({ message: "Team updated successfully", team: updatedTeam });
   } catch (error) {
     res.status(500).json({ message: "Error updating team", error });
   }
