@@ -107,7 +107,22 @@ exports.getTask = async (req, res, next) => {
 
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    res.status(200).json(task);
+    // Find total duration from TaskTimer(s)
+    const timers = await TaskTimer.find({ task_id: id });
+    const totalDuration = timers.reduce(
+      (sum, timer) => sum + (timer.duration || 0),
+      0
+    );
+
+    // Attach duration info to response
+    const taskWithDuration = {
+      ...task.toObject(),
+      duration_seconds: totalDuration,
+      duration_minutes: Math.floor(totalDuration / 60),
+      duration_hours: (totalDuration / 3600).toFixed(2),
+    };
+
+    res.status(200).json(taskWithDuration);
   } catch (error) {
     next(error);
   }

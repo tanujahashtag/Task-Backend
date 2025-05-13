@@ -1,5 +1,6 @@
 const TaskTimer = require("../models/TaskTimer");
 const TimerCycle = require("../models/TimerCycle");
+const Task = require("../models/Task");
 
 // Start timer
 exports.startTimer = async (req, res) => {
@@ -8,11 +9,22 @@ exports.startTimer = async (req, res) => {
     return res.status(400).json({ error: "task_id and user_id are required" });
   }
 
+  // Check if a timer already exists for the task
+  const existingTimer = await TaskTimer.findOne({ task_id });
+
+  if (existingTimer) {
+    return res.status(409).json({
+      error: "A timer already exists for this task.",
+      existingTimer,
+    });
+  }
+
   const newTimer = await TaskTimer.create({
     task_id,
     user_id,
     start_time: new Date(),
   });
+  await Task.updateOne({ _id: task_id }, { $set: { status: "Started" } });
 
   res.json(newTimer);
 };
@@ -27,6 +39,14 @@ exports.pauseTimer = async (req, res) => {
     task_timer_id,
     pause_time: new Date(),
   });
+  // Find task_id from TaskTimer
+  const timer = await TaskTimer.findById(task_timer_id);
+  if (timer && timer.task_id) {
+    await Task.updateOne(
+      { _id: timer.task_id },
+      { $set: { status: "Paused" } }
+    );
+  }
 
   res.json(pause);
 };
@@ -60,6 +80,14 @@ exports.resumeTimer = async (req, res) => {
     { _id: task_timer_id },
     { $inc: { duration } }
   );
+  // Find task_id from TaskTimer and update Task status
+  const timer = await TaskTimer.findById(task_timer_id);
+  if (timer && timer.task_id) {
+    await Task.updateOne(
+      { _id: timer.task_id },
+      { $set: { status: "In Progress" } }
+    );
+  }
 
   res.json({
     resume_time: resumeTime,
@@ -85,6 +113,14 @@ exports.stopTimer = async (req, res) => {
   timer.end_time = now;
   timer.duration += additionalDuration;
   await timer.save();
+
+  // Update associated Task status to 'Completed'
+  if (timer.task_id) {
+    await Task.updateOne(
+      { _id: timer.task_id },
+      { $set: { status: "Completed" } }
+    );
+  }
 
   res.json(timer);
 };
