@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
-
+const TaskTimer = require("../models/TaskTimer");
+const TimerCycle = require("../models/TimerCycle");
 // Create and Save a Task
 exports.saveTask = async (req, res, next) => {
   try {
@@ -137,7 +138,20 @@ exports.deleteTask = async (req, res, next) => {
     if (!deletedTask)
       return res.status(404).json({ message: "Task not found" });
 
-    res.status(200).json({ message: "Task deleted successfully" });
+    // Find and delete associated TaskTimers
+    const taskTimers = await TaskTimer.find({ task_id: id });
+
+    for (const timer of taskTimers) {
+      // Delete associated TimerCycles for each timer
+      await TimerCycle.deleteMany({ task_timer_id: timer._id });
+    }
+
+    // Delete the TaskTimers
+    await TaskTimer.deleteMany({ task_id: id });
+
+    res
+      .status(200)
+      .json({ message: "Task and associated timers deleted successfully" });
   } catch (error) {
     next(error);
   }
