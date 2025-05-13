@@ -24,7 +24,7 @@ exports.startTimer = async (req, res) => {
     user_id,
     start_time: new Date(),
   });
-  await Task.updateOne({ _id: task_id }, { $set: { status: "Started" } });
+  await Task.updateOne({ _id: task_id }, { $set: { status: "In Progress" } });
 
   res.json(newTimer);
 };
