@@ -9,6 +9,7 @@ const taskRoutes = require("./src/routes/taskRoutes");
 const projectRoutes = require("./src/routes/projectRoutes");
 const roleRoutes = require("./src/routes/roleRoutes");
 const teamRoutes = require("./src/routes/teamRoutes");
+const timerRoutes = require("./src/routes/timerRoutes");
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,7 @@ app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/roles", roleRoutes);
 app.use("/teams", teamRoutes);
+app.use("/timers", timerRoutes);
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "src/uploads/profileImage"))

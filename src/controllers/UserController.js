@@ -162,7 +162,6 @@ exports.updateUser = async (req, res) => {
     // Prevent email update regardless of role
     delete updates.email;
 
-
     // Apply updates
     Object.keys(updates).forEach((key) => {
       user[key] = updates[key];
@@ -185,7 +184,6 @@ exports.updateUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error); // still logs full error in console for debugging
     res.status(500).json({
       message: "Server error",
       error: error.message || error.toString(),
@@ -226,7 +224,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Upload Profile 
+// Upload Profile
 exports.uploadProfile = async (req, res) => {
   upload.single("profileImage")(req, res, async (err) => {
     try {
@@ -239,8 +237,8 @@ exports.uploadProfile = async (req, res) => {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
       }
-      console.log('data', req.body);
-      const userId = req.body.id; 
+      console.log("data", req.body);
+      const userId = req.body.id;
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
