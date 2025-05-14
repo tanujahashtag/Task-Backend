@@ -94,6 +94,16 @@ exports.allTask = async (req, res, next) => {
       // For other roles, find only the projects the user is assigned to
       tasks = await Task.find({ user_id: user.userId });
     }
+    console.log("data", "i am ere");
+
+    for (let task of tasks) {
+      const timer = await TaskTimer.findOne({ task_id: task._id });
+      if (timer) {
+        task.task_timer_id = timer._id; // Add the task_timer_id to the task object
+      } else {
+        task.task_timer_id = null; // Set to null if no timer found
+      }
+    }
     res.status(200).json(tasks);
   } catch (error) {
     next(error);
@@ -115,9 +125,14 @@ exports.getTask = async (req, res, next) => {
       0
     );
 
+    const taskTimer = await TaskTimer.findOne({ task_id: id }).sort({
+      createdAt: -1,
+    });
+
     // Attach duration info to response
     const taskWithDuration = {
       ...task.toObject(),
+      task_timer_id: taskTimer ? taskTimer._id : null,
       duration_seconds: totalDuration,
       duration_minutes: Math.floor(totalDuration / 60),
       duration_hours: (totalDuration / 3600).toFixed(2),

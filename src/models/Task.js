@@ -14,6 +14,7 @@ const TaskSchema = new mongoose.Schema(
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // 👈 important!
 
     status: { type: String, required: true, default: "Not Started" },
+    task_timer_id: { type: String },
   },
   { timestamps: true }
 );
