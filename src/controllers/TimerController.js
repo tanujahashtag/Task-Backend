@@ -182,3 +182,75 @@ exports.getProductivity = async (req, res) => {
     productivity_percent: productivityPercent,
   });
 };
+
+// Helper function to format time
+const formatTime = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours}h ${minutes}m ${seconds}s`;
+};
+
+// Timer Stream endpoint (SSE)
+exports.timerStream = async (req, res) => {
+  const { task_timer_id } = req.query;
+  if (!task_timer_id) {
+    return res.status(400).send("Missing task_timer_id");
+  }
+
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders();
+
+  let intervalId;
+
+  // Function to calculate and send elapsed time
+  const sendElapsed = async () => {
+    const timer = await TaskTimer.findById(task_timer_id);
+    if (!timer) return;
+
+    let baseDuration = timer.duration || 0; // Base duration from DB
+
+    // If timer has ended, send the final duration and stop stream
+    if (timer.end_time) {
+      const formatted = formatTime(baseDuration);
+      res.write(`data: ${formatted}\n\n`);
+      clearInterval(intervalId);
+      return;
+    }
+
+    // Check if the timer is paused
+    const latestCycle = await TimerCycle.findOne({ task_timer_id }).sort({
+      pause_time: -1,
+    });
+
+    const isPaused = latestCycle && !latestCycle.resume_time;
+
+    let totalElapsed = baseDuration;
+
+    if (!isPaused) {
+      // Timer is running, calculate additional elapsed time since last resume
+      const lastResume = latestCycle?.resume_time || timer.start_time;
+      const now = new Date();
+      const additionalSeconds = Math.floor((now - lastResume) / 1000);
+      totalElapsed += additionalSeconds;
+    }
+
+    // Send the formatted elapsed time
+    const formatted = formatTime(totalElapsed);
+    res.write(`data: ${formatted}\n\n`);
+  };
+
+  // Call sendElapsed every second
+  intervalId = setInterval(sendElapsed, 1000);
+
+  // Stop streaming when the connection is closed
+  req.on("close", () => {
+    clearInterval(intervalId);
+    res.end();
+  });
+};
