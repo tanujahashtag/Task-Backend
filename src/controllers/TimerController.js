@@ -157,6 +157,10 @@ exports.getProductivity = async (req, res) => {
     0
   );
 
+  const totalSecondsRaw = timers.reduce(
+    (sum, timer) => sum + (timer.duration || 0),
+    0
+  );
   // Convert to minutes
   let totalMinutes = Math.floor(totalSecondsRaw / 60);
 
