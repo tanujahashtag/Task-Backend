@@ -156,7 +156,14 @@ exports.getProductivity = async (req, res) => {
     (sum, timer) => sum + (timer.duration || 0),
     0
   );
-  const totalMinutes = Math.floor(totalSeconds / 60);
+
+  // Convert to minutes
+  let totalMinutes = Math.floor(totalSecondsRaw / 60);
+
+  // Subtract 80 minutes if total is more than 80
+  if (totalMinutes > 80) {
+    totalMinutes -= 80;
+  }
   const totalHours = (totalMinutes / 60).toFixed(2);
 
   const hours = Math.floor(totalMinutes / 60);
