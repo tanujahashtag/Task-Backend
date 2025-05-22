@@ -94,7 +94,6 @@ exports.allTask = async (req, res, next) => {
       // For other roles, find only the projects the user is assigned to
       tasks = await Task.find({ user_id: user.userId });
     }
-    console.log("data", "i am ere");
 
     for (let task of tasks) {
       const timer = await TaskTimer.findOne({ task_id: task._id });

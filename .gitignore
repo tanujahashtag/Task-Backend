@@ -5,6 +5,9 @@ node_modules/
 build/
 dist/
 
+/src/uploads/
+
+
 # Local Netlify build files
 .netlify/
 
