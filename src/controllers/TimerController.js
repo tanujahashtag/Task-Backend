@@ -161,6 +161,7 @@ exports.getProductivity = async (req, res) => {
     (sum, timer) => sum + (timer.duration || 0),
     0
   );
+
   // Convert to minutes
   let totalMinutes = Math.floor(totalSecondsRaw / 60);
 
