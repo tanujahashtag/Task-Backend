@@ -2,13 +2,15 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 const mongoose = require("mongoose");
+const User = require("../models/User");
 
-// Cache for dynamic models to avoid re-declaring
+// Cache for dynamic models
 const modelCache = {};
 
-// Screenshot schema factory with caching
-const getScreenshotModel = (userId) => {
-  const modelName = `${userId}_screenshot`;
+// Get Screenshot Model using username
+const getScreenshotModel = (username) => {
+  const modelName = `${username}_screenshot`;
+
   if (modelCache[modelName]) return modelCache[modelName];
 
   const schema = new mongoose.Schema({
@@ -22,9 +24,8 @@ const getScreenshotModel = (userId) => {
   return modelCache[modelName];
 };
 
-// Upload controller
+// Upload Screenshot
 exports.uploadScreenshot = async (req, res) => {
-  // Use Multer to temporarily accept the file (userId isn't known yet)
   const tempDir = path.join(__dirname, "../uploads/screenshots/temp");
   fs.mkdirSync(tempDir, { recursive: true });
 
@@ -50,21 +51,31 @@ exports.uploadScreenshot = async (req, res) => {
         return res.status(400).json({ message: "User ID is required" });
       }
 
+      // Get user and username
+      const user = await User.findById(userId);
+      if (!user || !user.username) {
+        return res
+          .status(404)
+          .json({ message: "User not found or username missing" });
+      }
+
+      const username = user.username;
+
       // Create user-specific directory
-      const userDir = path.join(__dirname, "../uploads/screenshots", userId);
+      const userDir = path.join(__dirname, "../uploads/screenshots", username);
       fs.mkdirSync(userDir, { recursive: true });
 
-      // Rename and move the file to the user directory
+      // Move and rename the uploaded file
       const newFilename = `screenshot-${Date.now()}.png`;
       const oldPath = path.join(tempDir, req.file.filename);
       const newPath = path.join(userDir, newFilename);
       fs.renameSync(oldPath, newPath);
 
-      // Save metadata in user-specific MongoDB collection
-      const ScreenshotModel = getScreenshotModel(userId);
+      // Save screenshot metadata
+      const ScreenshotModel = getScreenshotModel(username);
       const screenshot = new ScreenshotModel({
         filename: newFilename,
-        path: `/uploads/screenshots/${userId}/${newFilename}`,
+        path: `/uploads/screenshots/${username}/${newFilename}`,
       });
       await screenshot.save();
 
@@ -80,22 +91,33 @@ exports.uploadScreenshot = async (req, res) => {
   });
 };
 
-// Get Screenshot of Single User
+// Get all screenshots for a user
 exports.getScreenshot = async (req, res) => {
   try {
     const userId = req.params.userId || req.body?.userId || req.user?.id;
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
-    const ScreenshotModel = getScreenshotModel(userId);
+
+    // Get user and username
+    const user = await User.findById(userId);
+    if (!user || !user.username) {
+      return res
+        .status(404)
+        .json({ message: "User not found or username missing" });
+    }
+
+    const username = user.username;
+
+    // Get screenshot model and data
+    const ScreenshotModel = getScreenshotModel(username);
     const screenshots = await ScreenshotModel.find().sort({ uploadedAt: -1 });
 
     const host = `${req.protocol}://${req.get("host")}`;
-
     const screenshotsWithUrl = screenshots.map((screenshot) => ({
       _id: screenshot._id,
       filename: screenshot.filename,
-      path: `${host}/screenshots/uploads/${userId}/${screenshot.filename}`, // full public URL
+      path: `${host}/uploads/screenshots/${username}/${screenshot.filename}`,
       uploadedAt: screenshot.uploadedAt,
     }));
 
@@ -109,6 +131,3 @@ exports.getScreenshot = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
-

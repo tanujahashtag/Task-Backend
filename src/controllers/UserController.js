@@ -23,11 +23,20 @@ exports.addUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
     const defaultProfileImage = "default-avatar.png";
+
+    const generateUsername = (name) => {
+      const baseName = name.replace(/\s+/g, "").toLowerCase();
+      const randomNumber = Math.floor(10 + Math.random() * 90);
+      return `${baseName}${randomNumber}`;
+    };
+
+    const username = generateUsername(name);
     // Create a new user
     const newUser = new User({
       name,
       email,
       password,
+      username,
       role: role || "Employee",
       project: project || null,
       designation: designation || null,
@@ -41,6 +50,7 @@ exports.addUser = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        username: newUser.username,
         project: newUser.project,
         designation: newUser.designation,
       },

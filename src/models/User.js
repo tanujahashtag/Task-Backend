@@ -6,8 +6,9 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
     password: { type: String, required: true },
     designation: { type: String },
+    username: { type: String, unique: true },
     role: { type: String, default: "Employee" },
-    profileImage: {type: String, default: "default-avatar.png" },
+    profileImage: { type: String, default: "default-avatar.png" },
     project: [
       {
         project_id: {
