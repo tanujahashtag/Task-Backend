@@ -32,7 +32,7 @@ app.use("/admin", adminRoutes);
 app.use("/productivity", productivityRoutes);
 
 app.use(
-  "/screenshots/uploads",
+  "/uploads/screenshots",
   express.static(path.join(__dirname, "src/uploads/screenshots"))
 );
 

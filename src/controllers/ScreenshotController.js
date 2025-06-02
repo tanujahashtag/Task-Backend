@@ -109,7 +109,7 @@ exports.getScreenshot = async (req, res) => {
 
     const username = user.username;
 
-    // Get screenshot model and data
+    // Get scre enshot model and data
     const ScreenshotModel = getScreenshotModel(username);
     const screenshots = await ScreenshotModel.find().sort({ uploadedAt: -1 });
 
