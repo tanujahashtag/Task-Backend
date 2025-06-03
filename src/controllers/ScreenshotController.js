@@ -3,6 +3,9 @@ const fs = require("fs");
 const multer = require("multer");
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const cloudinary = require("../config/cloudinary");
+const { Readable } = require("stream");
+const streamifier = require("streamifier");
 
 // Cache for dynamic models
 const modelCache = {};
@@ -24,20 +27,11 @@ const getScreenshotModel = (username) => {
   return modelCache[modelName];
 };
 
-// Upload Screenshot
+// multer with memory storage to get req.file.buffer
+const storage = multer.memoryStorage();
+const upload = multer({ storage }).single("screenshot");
+
 exports.uploadScreenshot = async (req, res) => {
-  const tempDir = path.join(__dirname, "../uploads/screenshots/temp");
-  fs.mkdirSync(tempDir, { recursive: true });
-
-  const storage = multer.diskStorage({
-    destination: tempDir,
-    filename: (req, file, cb) => {
-      cb(null, `temp-${Date.now()}.png`);
-    },
-  });
-
-  const upload = multer({ storage }).single("screenshot");
-
   upload(req, res, async (err) => {
     if (err) {
       return res
@@ -51,38 +45,43 @@ exports.uploadScreenshot = async (req, res) => {
         return res.status(400).json({ message: "User ID is required" });
       }
 
-      // Get user and username
+      // Find user by ID to get username
       const user = await User.findById(userId);
       if (!user || !user.username) {
         return res
           .status(404)
           .json({ message: "User not found or username missing" });
       }
-
       const username = user.username;
 
-      // Create user-specific directory
-      const userDir = path.join(__dirname, "../uploads/screenshots", username);
-      fs.mkdirSync(userDir, { recursive: true });
+      // Upload buffer to Cloudinary in user-specific folder
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: `screenshots/${username}` }, // save in user folder on Cloudinary
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      });
 
-      // Move and rename the uploaded file
-      const newFilename = `screenshot-${Date.now()}.png`;
-      const oldPath = path.join(tempDir, req.file.filename);
-      const newPath = path.join(userDir, newFilename);
-      fs.renameSync(oldPath, newPath);
-
-      // Save screenshot metadata
+      // Save metadata in user-specific screenshot collection
       const ScreenshotModel = getScreenshotModel(username);
       const screenshot = new ScreenshotModel({
-        filename: newFilename,
-        path: `/uploads/screenshots/${username}/${newFilename}`,
+        filename: uploadResult.public_id,
+        path: uploadResult.secure_url,
+        uploadedAt: new Date(),
       });
       await screenshot.save();
 
       res.status(200).json({
-        message: "Screenshot uploaded successfully",
-        filename: newFilename,
-        path: screenshot.path,
+        message: "Screenshot uploaded and saved successfully",
+        data: {
+          filename: screenshot.filename,
+          path: uploadResult.secure_url,
+          uploadedAt: screenshot.uploadedAt,
+        },
       });
     } catch (error) {
       console.error("Screenshot upload error:", error);
@@ -109,15 +108,14 @@ exports.getScreenshot = async (req, res) => {
 
     const username = user.username;
 
-    // Get scre enshot model and data
+    // Get screenshot model and data
     const ScreenshotModel = getScreenshotModel(username);
     const screenshots = await ScreenshotModel.find().sort({ uploadedAt: -1 });
 
-    const host = `${req.protocol}://${req.get("host")}`;
     const screenshotsWithUrl = screenshots.map((screenshot) => ({
       _id: screenshot._id,
       filename: screenshot.filename,
-      path: `${host}/uploads/screenshots/${username}/${screenshot.filename}`,
+      path: screenshot.path,
       uploadedAt: screenshot.uploadedAt,
     }));
 

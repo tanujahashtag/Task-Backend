@@ -90,11 +90,7 @@ exports.login = async (req, res) => {
       : `${req.protocol}://${req.get("host")}/uploads/default-avatar.png`;
 
     // Generate a JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      "your_secret_key",
-      { expiresIn: "1h" }
-    );
+     
 
     res.status(200).json({
       message: "Login successful",
