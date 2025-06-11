@@ -2,10 +2,14 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const finalAppActivitySchema = new mongoose.Schema({
-  appName: String,
+  activity: [
+    {
+      appName: String,
+      title: String,
+      duration: Number,
+    },
+  ],
   userID: { type: Schema.Types.ObjectId, required: true, ref: "User" },
-  title: String,
-  duration: Number,
 });
 
 module.exports = mongoose.model("FinalAppActivity", finalAppActivitySchema);

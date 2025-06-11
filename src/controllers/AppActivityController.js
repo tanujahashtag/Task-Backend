@@ -18,24 +18,26 @@ exports.addActivity = async (req, res) => {
         .json({ message: "Invalid openedAt or closedAt date format" });
     }
 
-    // Step 1: Get existing entries for this app and user from Temp collection
+    // 1. Find existing temp entries for this user/app
     const existingTempEntries = await TempAppActivity.find({ userID, appName });
 
-    // Step 2: Calculate total duration including new entry
-    let totalDuration = Math.floor((newClosedAt - newOpenedAt) / 1000); // in seconds
+    // 2. Calculate duration for new entry
+    const newEntryDuration = Math.floor((newClosedAt - newOpenedAt) / 1000); // seconds
 
+    // 3. Calculate total duration from existing temp entries (if any)
+    let existingDuration = 0;
     if (existingTempEntries.length > 0) {
       for (const entry of existingTempEntries) {
         const o = new Date(entry.openedAt);
         const c = new Date(entry.closedAt);
-        totalDuration += Math.floor((c - o) / 1000);
+        existingDuration += Math.floor((c - o) / 1000);
       }
 
-      // Step 3: Delete all previous temp entries for this app/user
+      // 4. Delete all previous temp entries for this app/user (they are consolidated now)
       await TempAppActivity.deleteMany({ userID, appName });
     }
 
-    // Step 4: Save new entry to TempAppActivity
+    // 5. Save new temp entry
     await TempAppActivity.create({
       userID,
       appName,
@@ -44,20 +46,42 @@ exports.addActivity = async (req, res) => {
       closedAt: newClosedAt,
     });
 
-    // Step 5: Upsert (insert or update) into FinalAppActivity
-    await FinalAppActivity.findOneAndUpdate(
-      { userID, appName },
-      {
-        $setOnInsert: { title },
-        $inc: { duration: totalDuration }, // add new duration
-      },
-      { upsert: true, new: true }
-    );
+    // 6. Find FinalAppActivity doc for this user
+    let finalDoc = await FinalAppActivity.findOne({ userID });
 
-    res.status(200).json({ message: "Activity processed successfully" });
+    if (!finalDoc) {
+      // No doc yet - create new with first activity
+      finalDoc = new FinalAppActivity({
+        userID,
+        activity: [
+          { appName, title, duration: existingDuration + newEntryDuration },
+        ],
+      });
+    } else {
+      // Check if activity with appName exists
+      const idx = finalDoc.activity.findIndex((a) => a.appName === appName);
+
+      if (idx > -1) {
+        // Add only the new entry duration (avoid double counting existingDuration)
+        finalDoc.activity[idx].duration += newEntryDuration;
+        finalDoc.activity[idx].title = title; // update title if needed
+      } else {
+        // Add new app activity entry with all duration from temp + new
+        finalDoc.activity.push({
+          appName,
+          title,
+          duration: existingDuration + newEntryDuration,
+        });
+      }
+    }
+
+    // Save the updated finalDoc
+    await finalDoc.save();
+
+    return res.status(200).json({ message: "Activity processed successfully" });
   } catch (error) {
     console.error("Error processing app activity:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -69,29 +93,38 @@ exports.getActivity = async (req, res) => {
       return res.status(400).json({ message: "userID is required in URL" });
     }
 
-    const activities = await FinalAppActivity.find({ userID });
+    // Find the single document for this user
+    const finalActivityDoc = await FinalAppActivity.findOne({ userID });
 
-    // Map and add readableDuration
-    const formattedActivities = activities.map((activity) => {
+    if (!finalActivityDoc) {
+      return res
+        .status(404)
+        .json({ message: "No activities found for this user" });
+    }
+
+    // Map over activity array and add readableDuration
+    const formattedActivities = finalActivityDoc.activity.map((activity) => {
       const durationInSeconds = activity.duration || 0;
       const hours = Math.floor(durationInSeconds / 3600);
       const minutes = Math.floor((durationInSeconds % 3600) / 60);
 
       return {
-        _id: activity._id,
         appName: activity.appName,
         title: activity.title,
-        userID: activity.userID,
         duration: durationInSeconds,
         readableDuration: `${hours}h ${minutes}m`,
-        createdAt: activity.createdAt,
-        updatedAt: activity.updatedAt,
       };
     });
 
     return res.status(200).json({
       success: true,
-      data: formattedActivities,
+      data: {
+        _id: finalActivityDoc._id,
+        userID: finalActivityDoc.userID,
+        activity: formattedActivities,
+        createdAt: finalActivityDoc.createdAt,
+        updatedAt: finalActivityDoc.updatedAt,
+      },
     });
   } catch (error) {
     console.error("Error fetching activities:", error);
