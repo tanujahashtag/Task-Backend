@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Project = require("../models/Project");
+const TempAppActivity = require("../models/TempAppActivity");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
@@ -324,5 +325,29 @@ exports.userDetail = async (req, res) => {
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.logOut = async (req, res) => {
+  try {
+    const userID = req.params.userID;
+    if (!userID) {
+      return res.status(400).json({ message: "userID is required" });
+    }
+
+    const tempEntries = await TempAppActivity.find({ userID });
+
+    if (tempEntries.length === 0) {
+      return res.status(200).json({ message: "No temp activities to clear" });
+    }
+
+    await TempAppActivity.deleteMany({ userID });
+
+    return res
+      .status(200)
+      .json({ message: "Temp activities cleared on signout" });
+  } catch (error) {
+    console.error("Error clearing temp activities on signout:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
