@@ -11,6 +11,10 @@ const finalAppActivitySchema = new mongoose.Schema({
       updatedAt: { type: Date, default: Date.now },
     },
   ],
+  totalIdleTime: {
+    seconds: { type: Number, default: 0 },
+    readable: { type: String, default: "0h 0m" }
+  },
   userID: { type: Schema.Types.ObjectId, required: true, ref: "User" },
 });
 

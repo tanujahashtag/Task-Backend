@@ -160,3 +160,46 @@ exports.getActivity = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.idealTime = async (req, res) => {
+  try {
+    const { userID, idleSeconds } = req.body;
+
+    if (!userID || idleSeconds == null) {
+      return res
+        .status(400)
+        .json({ message: "userID and idleSeconds are required" });
+    }
+
+    // Convert seconds to h/m
+    const hours = Math.floor(idleSeconds / 3600);
+    const minutes = Math.floor((idleSeconds % 3600) / 60);
+    const readable = `${hours}h ${minutes}m`;
+
+    // Find the user's FinalAppActivity document
+    const finalDoc = await FinalAppActivity.findOne({ userID });
+
+    if (!finalDoc) {
+      return res
+        .status(404)
+        .json({ message: "FinalAppActivity not found for this user" });
+    }
+
+    // Save idle time
+    finalDoc.totalIdleTime = {
+      seconds: idleSeconds,
+      readable,
+    };
+
+    await finalDoc.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Idle time saved successfully",
+      totalIdleTime: finalDoc.totalIdleTime,
+    });
+  } catch (error) {
+    console.error("Error saving idle time:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
