@@ -140,6 +140,7 @@ exports.getActivity = async (req, res) => {
         title: activity.title,
         duration: durationInSeconds,
         readableDuration: `${hours}h ${minutes}m`,
+
         createdAt: activity.createdAt,
         updatedAt: activity.updatedAt,
       };
@@ -153,6 +154,7 @@ exports.getActivity = async (req, res) => {
         activity: formattedActivities,
         createdAt: finalActivityDoc.createdAt,
         updatedAt: finalActivityDoc.updatedAt,
+        totalIdleTime: finalActivityDoc.totalIdleTime,
       },
     });
   } catch (error) {
@@ -161,7 +163,7 @@ exports.getActivity = async (req, res) => {
   }
 };
 
-exports.idealTime = async (req, res) => {
+exports.saveIdealTime = async (req, res) => {
   try {
     const { userID, idleSeconds } = req.body;
 

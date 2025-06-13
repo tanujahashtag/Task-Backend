@@ -4,6 +4,6 @@ const AppActivityController = require("../controllers/AppActivityController");
 
 router.post("/save", AppActivityController.addActivity);
 router.get("/get/:userID", AppActivityController.getActivity);
-router.post("/ideal-time", AppActivityController.idealTime);
+router.post("/save-ideal-time", AppActivityController.saveIdealTime);
 
 module.exports = router;
