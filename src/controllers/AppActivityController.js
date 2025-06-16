@@ -1,6 +1,5 @@
 const TempAppActivity = require("../models/TempAppActivity");
 const FinalAppActivity = require("../models/FinalAppActivity");
-
 exports.addActivity = async (req, res) => {
   try {
     const { userID, appName, title, openedAt, closedAt } = req.body;
@@ -48,8 +47,8 @@ exports.addActivity = async (req, res) => {
 
     // 6. Get or create FinalAppActivity for the user
     let finalDoc = await FinalAppActivity.findOne({ userID });
-
     const now = new Date();
+    const newEntryDateStr = newOpenedAt.toISOString().split("T")[0]; // YYYY-MM-DD
 
     if (!finalDoc) {
       // Create new final doc with first activity
@@ -60,27 +59,30 @@ exports.addActivity = async (req, res) => {
             appName,
             title,
             duration: existingDuration + newEntryDuration,
-            createdAt: now,
+            createdAt: newOpenedAt,
             updatedAt: now,
           },
         ],
       });
     } else {
-      // Check if activity with same appName already exists
-      const idx = finalDoc.activity.findIndex((a) => a.appName === appName);
+      // Check if any activity for same appName and same day exists
+      const idx = finalDoc.activity.findIndex((a) => {
+        const aDateStr = new Date(a.createdAt).toISOString().split("T")[0];
+        return a.appName === appName && aDateStr === newEntryDateStr;
+      });
 
       if (idx > -1) {
-        // Update existing activity
+        // Update existing same-day activity
         finalDoc.activity[idx].duration += newEntryDuration;
         finalDoc.activity[idx].title = title;
         finalDoc.activity[idx].updatedAt = now;
       } else {
-        // Add new activity entry
+        // Add new activity entry for different day
         finalDoc.activity.push({
           appName,
           title,
           duration: existingDuration + newEntryDuration,
-          createdAt: now,
+          createdAt: newOpenedAt,
           updatedAt: now,
         });
       }
@@ -99,18 +101,15 @@ exports.addActivity = async (req, res) => {
 exports.getActivity = async (req, res) => {
   try {
     const userID = req.params.userID;
-
     if (!userID) {
       return res.status(400).json({ message: "userID is required in URL" });
     }
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Fetch the full document
     const finalActivityDoc = await FinalAppActivity.findOne({ userID });
 
     if (!finalActivityDoc) {
@@ -119,31 +118,33 @@ exports.getActivity = async (req, res) => {
         .json({ message: "No activities found for this user" });
     }
 
-    // Filter activities created today
     const todayActivities = finalActivityDoc.activity.filter((activity) => {
       const createdAt = new Date(activity.createdAt);
       return createdAt >= startOfDay && createdAt <= endOfDay;
     });
 
-    if (todayActivities.length === 0) {
-      return res.status(404).json({ message: "No activities found for today" });
-    }
-
-    // Format durations
     const formattedActivities = todayActivities.map((activity) => {
       const durationInSeconds = activity.duration || 0;
       const hours = Math.floor(durationInSeconds / 3600);
       const minutes = Math.floor((durationInSeconds % 3600) / 60);
-
       return {
         appName: activity.appName,
         title: activity.title,
         duration: durationInSeconds,
         readableDuration: `${hours}h ${minutes}m`,
-
         createdAt: activity.createdAt,
         updatedAt: activity.updatedAt,
       };
+    });
+
+    // Find today's idle time entry by matching date (ignoring time)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayIdleEntry = finalActivityDoc.totalIdleTime.find((entry) => {
+      const entryDate = new Date(entry.date);
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate.getTime() === today.getTime();
     });
 
     return res.status(200).json({
@@ -152,9 +153,11 @@ exports.getActivity = async (req, res) => {
         _id: finalActivityDoc._id,
         userID: finalActivityDoc.userID,
         activity: formattedActivities,
-        createdAt: finalActivityDoc.createdAt,
-        updatedAt: finalActivityDoc.updatedAt,
-        totalIdleTime: finalActivityDoc.totalIdleTime,
+        totalIdleTime: todayIdleEntry || {
+          seconds: 0,
+          readable: "0h 0m",
+          date: today,
+        },
       },
     });
   } catch (error) {
@@ -166,39 +169,54 @@ exports.getActivity = async (req, res) => {
 exports.saveIdealTime = async (req, res) => {
   try {
     const { userID, idleSeconds } = req.body;
-
     if (!userID || idleSeconds == null) {
       return res
         .status(400)
         .json({ message: "userID and idleSeconds are required" });
     }
 
-    // Convert seconds to h/m
     const hours = Math.floor(idleSeconds / 3600);
     const minutes = Math.floor((idleSeconds % 3600) / 60);
     const readable = `${hours}h ${minutes}m`;
 
-    // Find the user's FinalAppActivity document
-    const finalDoc = await FinalAppActivity.findOne({ userID });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize to start of day
+
+    let finalDoc = await FinalAppActivity.findOne({ userID });
 
     if (!finalDoc) {
-      return res
-        .status(404)
-        .json({ message: "FinalAppActivity not found for this user" });
-    }
+      finalDoc = new FinalAppActivity({
+        userID,
+        totalIdleTime: [{ date: today, seconds: idleSeconds, readable }],
+      });
+    } else {
+      // Find index for today's date ignoring time
+      const idx = finalDoc.totalIdleTime.findIndex((entry) => {
+        const entryDate = new Date(entry.date);
+        entryDate.setHours(0, 0, 0, 0);
+        return entryDate.getTime() === today.getTime();
+      });
 
-    // Save idle time
-    finalDoc.totalIdleTime = {
-      seconds: idleSeconds,
-      readable,
-    };
+      if (idx > -1) {
+        // Update existing
+        finalDoc.totalIdleTime[idx].seconds = idleSeconds;
+        finalDoc.totalIdleTime[idx].readable = readable;
+      } else {
+        // Add new entry
+        finalDoc.totalIdleTime.push({
+          date: today,
+          seconds: idleSeconds,
+          readable,
+        });
+      }
+    }
 
     await finalDoc.save();
 
     return res.status(200).json({
       success: true,
       message: "Idle time saved successfully",
-      totalIdleTime: finalDoc.totalIdleTime,
+      idleTime: { date: today, seconds: idleSeconds, readable },
     });
   } catch (error) {
     console.error("Error saving idle time:", error);
